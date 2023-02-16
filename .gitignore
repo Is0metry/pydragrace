@@ -30,3 +30,4 @@ HIDEME
 
 # don't ignore .gitignore
 !.gitignore
+data/episodes.numbers
