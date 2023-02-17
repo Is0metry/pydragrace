@@ -37,9 +37,30 @@ def split_queens(data: Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]) -> Tuple
             'queen_id', 'season']).drop(columns=['queen_id'])
         ret_data[i] = pd.merge(ret_data[i], data[2], how='inner', left_on=[
             'season', 'episode'], right_on=['season', 'episode'])
+        ret_data[i] = fix_data(ret_data[i])
     return ret_data[0], ret_data[1], ret_data[2]
 
 
+def fix_data(df: pd.DataFrame) -> pd.DataFrame:
+    df.main_challenge = df.main_challenge.astype('string')
+    df.loc[df.main_challenge == 'Improv', 'main_challenge'] = 'Comedy'
+    df.loc[df.main_challenge == 'Acting', 'main_challenge'] = 'Comedy'
+    df.etype = df.etype.astype('string')
+    df.loc[df.main_challenge == 'Misc', 'main_challenge'] = 'Performing'
+    df.loc[df.main_challenge == 'Product', 'main_challenge'] = 'Comedy'
+    df.loc[df.main_challenge == 'Design',
+           'main_challenge'] = 'Fabrication'
+    df.loc[df.main_challenge == 'Reunion', 'etype'] = 'Reunion'
+    df.loc[df.main_challenge == 'Reunion', 'main_challenge'] = 'N/A'
+    df.loc[df.main_challenge == 'Finale','main_challenge'] = 'N/A'
+    df.loc[df.main_challenge == 'Performing','main_challenge'] = 'Performance'
+    df.loc[df.nickname == '10s Across The Board','main_challenge'] = 'Fabrication'
+    df.loc[df.outcome == 'Eliminated','outcome'] = 'ELIM'
+    df.loc[df.outcome == 'LOSS','outcome'] = 'BTM'
+    df.loc[df.outcome.str.contains('LOST'),'outcome'] = 'ELIM'
+    df.loc[df.outcome == 'Winner','outcome'] = 'WIN'
+    df = df.rename(columns={'main_challenge':'challenge_type'})
+    return df
 def tvt_split(df: pd.DataFrame,
               stratify: str = None,
               tv_split: float = .2,
