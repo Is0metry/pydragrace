@@ -52,15 +52,33 @@ def fix_data(df: pd.DataFrame) -> pd.DataFrame:
            'main_challenge'] = 'Fabrication'
     df.loc[df.main_challenge == 'Reunion', 'etype'] = 'Reunion'
     df.loc[df.main_challenge == 'Reunion', 'main_challenge'] = 'N/A'
-    df.loc[df.main_challenge == 'Finale','main_challenge'] = 'N/A'
-    df.loc[df.main_challenge == 'Performing','main_challenge'] = 'Performance'
-    df.loc[df.nickname == '10s Across The Board','main_challenge'] = 'Fabrication'
-    df.loc[df.outcome == 'Eliminated','outcome'] = 'ELIM'
-    df.loc[df.outcome == 'LOSS','outcome'] = 'BTM'
-    df.loc[df.outcome.str.contains('LOST'),'outcome'] = 'ELIM'
-    df.loc[df.outcome == 'Winner','outcome'] = 'WIN'
-    df = df.rename(columns={'main_challenge':'challenge_type'})
+    df.loc[df.main_challenge == 'Finale', 'main_challenge'] = 'N/A'
+    df.loc[df.main_challenge == 'Performing', 'main_challenge'] = 'Performance'
+    df.loc[df.nickname == '10s Across The Board',
+           'main_challenge'] = 'Fabrication'
+    df.loc[df.outcome == 'Eliminated', 'outcome'] = 'ELIM'
+    df.loc[df.outcome.str.contains('LOST'), 'outcome'] = 'ELIM'
+    df.loc[df.outcome == 'Runner-up', 'outcome'] = 'ELIM'
+    df.loc[df.outcome == 'LOSS', 'outcome'] = 'BTM'
+    df.loc[df.outcome == 'Winner', 'outcome'] = 'WIN'
+    df.loc[df.outcome == 'OUT', 'outcome'] = 'GUEST'
+    df.loc[df.outcome == 'Guest', 'outcome'] = 'GUEST'
+    df.loc[df.outcome == 'RUNNING', 'outcome'] = 'GUEST'
+    df.loc[df.outcome == 'TOP2', 'outcome'] = 'HIGH'
+    df.loc[df.outcome == 'TOP 4', 'outcome'] = 'HIGH'
+    df.loc[df.outcome == 'SAFE+DEPT', 'outcome'] = 'WDR'
+    df.loc[df.outcome == 'WIN+RTRN', 'outcome'] = 'WIN'
+    df.loc[df.outcome == 'STAY', 'outcome'] = 'SAFE'
+    df.loc[df.outcome == 'SAVE', 'outcome'] = 'BTM'
+    df.loc[df.outcome == 'RTRN','outcome'] = 'GUEST'
+    df.loc[df.outcome == 'MISSCON', 'outcome'] = 'GUEST'
+    df = df[df.outcome != 'Miss C']
+    df = df[df.queen_name != 'Sherry Pie']
+    df = df.rename(columns={'main_challenge': 'challenge_type'})
+    df = df.reset_index(drop=True)
     return df
+
+
 def tvt_split(df: pd.DataFrame,
               stratify: str = None,
               tv_split: float = .2,
