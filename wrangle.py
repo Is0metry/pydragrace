@@ -1,14 +1,19 @@
+import re
 import numpy as np
 import pandas as pd
+import requests
 import seaborn as sns
 import matplotlib.pyplot as plt
 from typing import Tuple
 from sklearn.model_selection import train_test_split
+from bs4 import BeautifulSoup
+from bs4.element import ResultSet
+from typing import List
 
 
 def acquire_rpdr_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     '''
-    Gets the RuPaul's Drag Race data from pickle files 
+    Gets the RuPaul's Drag Race data from pickle files
     converted from `.rda` files in `extract.ipynb`
     ## Parameters
     None
@@ -50,6 +55,8 @@ def fix_data(df: pd.DataFrame) -> pd.DataFrame:
     df.loc[df.main_challenge == 'Product', 'main_challenge'] = 'Comedy'
     df.loc[df.main_challenge == 'Design',
            'main_challenge'] = 'Fabrication'
+    df.loc[df.main_challenge == 'Rusical', 'etype'] = 'Rusical'
+    df.loc[df.main_challenge == 'Rusical', 'main_challenge'] = 'Performing'
     df.loc[df.main_challenge == 'Reunion', 'etype'] = 'Reunion'
     df.loc[df.main_challenge == 'Reunion', 'main_challenge'] = 'N/A'
     df.loc[df.main_challenge == 'Finale', 'main_challenge'] = 'N/A'
@@ -70,7 +77,7 @@ def fix_data(df: pd.DataFrame) -> pd.DataFrame:
     df.loc[df.outcome == 'WIN+RTRN', 'outcome'] = 'WIN'
     df.loc[df.outcome == 'STAY', 'outcome'] = 'SAFE'
     df.loc[df.outcome == 'SAVE', 'outcome'] = 'BTM'
-    df.loc[df.outcome == 'RTRN','outcome'] = 'GUEST'
+    df.loc[df.outcome == 'RTRN', 'outcome'] = 'GUEST'
     df.loc[df.outcome == 'MISSCON', 'outcome'] = 'GUEST'
     df = df[df.outcome != 'Miss C']
     df = df[df.queen_name != 'Sherry Pie']
@@ -79,6 +86,43 @@ def fix_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def scrape_episode_info(url:str,season:int) -> List[pd.Series]:
+    url = url.format(season)
+    response = requests.get(url).text
+    bs = BeautifulSoup(response, 'html.parser')
+    table = bs.find('table', class_='wikiepisodetable').find_all('td')
+    episodes = []
+    items_to_get = {
+        'Mini-Challenge':'mini_challenge',
+        'Mini-Challenge Winner':'mini_challenge_winner',
+        'Mini-Challenge Winners':'mini_challenge_winner',
+        'Main Challenge':'main_challenge',
+        'Runway Theme':'runway_theme'
+    }
+    for i in range(0, len(table), 4):
+        episode = {'season': season}
+        episode['episode'] = int(table[i].get_text())
+        episode['episode_name'] = table[i+1].get_text()
+        episode['air_date'] = table[i+2].find('span', class_='bday').get_text()
+        description_lists = table[i+3].find_all('ul')
+        if len(description_lists) > 0:
+            ep_info = description_lists[len(
+                description_lists)-1]
+            for info in ep_info.find_all('li'):
+                if info.b is not None:
+                    info_type = info.b.get_text()
+                    if info_type in items_to_get.keys():
+                        info.b.decompose()
+                        episode[items_to_get[info_type]] = info.get_text()[2:]
+        episodes.append(episode)
+    return episodes
+
+def get_all_episodes()->pd.DataFrame:
+    url = 'https://en.wikipedia.org/wiki/RuPaul%27s_Drag_Race_(season_{:d})'
+    episodes = []
+    for i in range(1,15):
+        episodes += scrape_episode_info(url,i)
+    
 def tvt_split(df: pd.DataFrame,
               stratify: str = None,
               tv_split: float = .2,
