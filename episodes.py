@@ -2,6 +2,7 @@ import re
 from typing import List, Dict
 from bs4 import BeautifulSoup
 import pandas as pd
+import numpy as np
 import requests
 
 items_to_get = {
@@ -50,3 +51,11 @@ def get_all_episodes(soups: Dict[str, List[BeautifulSoup]]) -> pd.DataFrame:
     for series_name, soup_list in soups.items():
         ret_lst += get_series_episodes(soup_list, series_name)
     return pd.DataFrame(ret_lst)
+
+
+def clean_episodes(df: pd.DataFrame) -> pd.DataFrame:
+    episodes = df.copy()
+    episodes.season = episodes.season.astype(np.uint8)
+    episodes.episode = episodes.episode.astype(np.uint8)
+    episodes.air_date = pd.to_datetime(episodes.air_date)
+    return episodes

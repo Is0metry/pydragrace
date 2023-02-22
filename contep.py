@@ -42,3 +42,32 @@ def get_series_contep(soup_list: BeautifulSoup) -> pd.DataFrame:
 def get_all_contep(soups: BeautifulSoup) -> pd.DataFrame:
     ret_frames = [get_series_contep(soup) for soup in soups.values()]
     return pd.concat(ret_frames).dropna().reset_index(drop=True)
+
+
+def clean_outcomes(queenep: pd.DataFrame) -> pd.DataFrame:
+    queenep.loc[queenep.outcome == 'Eliminated', 'outcome'] = 'ELIM'
+    queenep.loc[queenep.outcome.str.contains('LOST'), 'outcome'] = 'ELIM'
+    queenep.loc[queenep.outcome == 'Runner-up', 'outcome'] = 'ELIM'
+    queenep.loc[queenep.outcome == 'LOSS', 'outcome'] = 'BTM'
+    queenep.loc[queenep.outcome == 'Winner', 'outcome'] = 'WIN'
+    queenep.loc[queenep.outcome == 'OUT', 'outcome'] = 'GUEST'
+    queenep.loc[queenep.outcome == 'Guest', 'outcome'] = 'GUEST'
+    queenep.loc[queenep.outcome == 'RUNNING', 'outcome'] = 'GUEST'
+    queenep.loc[queenep.outcome == 'TOP2', 'outcome'] = 'WIN'
+    queenep.loc[queenep.outcome == 'IN', 'outcome'] = 'WIN'
+    queenep.loc[queenep.outcome == 'R-up', 'outcome'] = 'ELIM'
+    queenep.loc[queenep.outcome == 'TOP 4', 'outcome'] = 'SAFE'
+    queenep.loc[queenep.outcome == 'STAY', 'outcome'] = 'SAFE'
+    queenep.loc[queenep.outcome == 'SAVE', 'outcome'] = 'BTM'
+    queenep.loc[queenep.outcome == 'RTRN', 'outcome'] = 'GUEST'
+    queenep.loc[queenep.outcome == 'Miss C', 'outcome'] = 'GUEST'
+    queenep.loc[queenep.outcome == 'QUIT', 'outcome'] = 'ELIM'
+    return queenep
+
+
+def clean_queenep(df: pd.DataFrame) -> pd.DataFrame:
+    queenep = df.copy()
+    queenep = clean_outcomes(queenep)
+    queenep.season = queenep.season.astype(np.uint8)
+    queenep.episode = queenep.episode.astype(np.uint8)
+    return queenep

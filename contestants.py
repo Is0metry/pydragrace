@@ -47,7 +47,8 @@ def get_all_contestants(soups: Dict[str, List[BeautifulSoup]]) -> pd.DataFrame:
     return pd.concat(all_queens).reset_index(drop=True)
 
 
-def clean_queens(queens: pd.DataFrame) -> pd.DataFrame:
+def clean_queens(df: pd.DataFrame) -> pd.DataFrame:
+    queens = df.copy()
     queens.age = queens.age.astype(np.uint16)
     queens.season = queens.season.astype(np.uint8)
     queens.series = queens.series.astype('category')
