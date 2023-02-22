@@ -9,38 +9,46 @@ from sklearn.model_selection import train_test_split
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet
 from typing import List
+from contestants import get_all_contestants
+from contep import get_all_contep
+from common import get_soups
+from episodes import get_all_episodes
+from os.path import isfile
+
+DATA_PATHS = ['data/queens', 'data/queenep', 'data/episodes']
 
 
-def acquire_rpdr_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    '''
-    Gets the RuPaul's Drag Race data from pickle files
-    converted from `.rda` files in `extract.ipynb`
-    ## Parameters
-    None
-    ## Returns
-    contestants: `DataFrame` of all contestants in US regular seasons
-    of RuPaul's Drag Race.
-    contep: Contestant performance per episode.
-    episodes: summary of all episodes
-    '''
-    contestants = pd.read_pickle('data/contestants.pkl')
-    contep = pd.read_pickle('data/contep.pkl')
-    episodes = pd.read_pickle('data/episodes.pkl')
-    return contestants, contep, episodes
+def get_show_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    if all([isfile(p + '.pkl') for p in DATA_PATHS]):
+        return (pd.read_pickle(path + '.pkl') for path in DATA_PATHS)
+    if any([not isfile(p + '.csv') for p in DATA_PATHS]):
+        soups = get_soups()
+        data = (get_all_contestants(soups),
+                get_all_contep(soups),
+                get_all_episodes(soups))
+        for path, df in zip(DATA_PATHS, data):
+            df.to_csv(path + '.csv', index=False)
+        return data
+    return (pd.read_csv(path + '.csv') for path in DATA_PATHS)
 
 
-def split_queens(data: Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]) -> Tuple[pd.DataFrame,
-                                                                                 pd.DataFrame,
-                                                                                 pd.DataFrame]:
+
+
+
+def split_queens(queens: pd.DataFrame,
+                 contep: pd.DataFrame,
+                 episodes: pd.DataFrame) -> Tuple[pd.DataFrame,
+                                                  pd.DataFrame,
+                                                  pd.DataFrame]:
     # TODO Docstring
-    queen_split = tvt_split(data[0], stratify='winner')
+    queen_split = tvt_split(queens, stratify='winner')
     ret_data = [pd.DataFrame(), pd.DataFrame, pd.DataFrame]
-    for i in range(len(queen_split)):
-        ret_data[i] = pd.merge(queen_split[i], data[1], how='inner', left_on=[
+    for i in (range(len(queen_split))):
+        ret_data[i] = pd.merge(queen_split[i], contep, how='inner', left_on=[
             queen_split[i].index, 'season'],
             right_on=[
             'queen_id', 'season']).drop(columns=['queen_id'])
-        ret_data[i] = pd.merge(ret_data[i], data[2], how='inner', left_on=[
+        ret_data[i] = pd.merge(ret_data[i], episodes, how='inner', left_on=[
             'season', 'episode'], right_on=['season', 'episode'])
         ret_data[i] = fix_data(ret_data[i])
     return ret_data[0], ret_data[1], ret_data[2]
@@ -86,43 +94,6 @@ def fix_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def scrape_episode_info(url:str,season:int) -> List[pd.Series]:
-    url = url.format(season)
-    response = requests.get(url).text
-    bs = BeautifulSoup(response, 'html.parser')
-    table = bs.find('table', class_='wikiepisodetable').find_all('td')
-    episodes = []
-    items_to_get = {
-        'Mini-Challenge':'mini_challenge',
-        'Mini-Challenge Winner':'mini_challenge_winner',
-        'Mini-Challenge Winners':'mini_challenge_winner',
-        'Main Challenge':'main_challenge',
-        'Runway Theme':'runway_theme'
-    }
-    for i in range(0, len(table), 4):
-        episode = {'season': season}
-        episode['episode'] = int(table[i].get_text())
-        episode['episode_name'] = table[i+1].get_text()
-        episode['air_date'] = table[i+2].find('span', class_='bday').get_text()
-        description_lists = table[i+3].find_all('ul')
-        if len(description_lists) > 0:
-            ep_info = description_lists[len(
-                description_lists)-1]
-            for info in ep_info.find_all('li'):
-                if info.b is not None:
-                    info_type = info.b.get_text()
-                    if info_type in items_to_get.keys():
-                        info.b.decompose()
-                        episode[items_to_get[info_type]] = info.get_text()[2:]
-        episodes.append(episode)
-    return episodes
-
-def get_all_episodes()->pd.DataFrame:
-    url = 'https://en.wikipedia.org/wiki/RuPaul%27s_Drag_Race_(season_{:d})'
-    episodes = []
-    for i in range(1,15):
-        episodes += scrape_episode_info(url,i)
-    
 def tvt_split(df: pd.DataFrame,
               stratify: str = None,
               tv_split: float = .2,
