@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
 import requests
-
+from common import rm_newline
 items_to_get = {
     re.compile(r'Mini-Challenge Winner(s)?(:)?'): 'mini_challenge_winner',
     re.compile(r'Mini-Challenge(:)?'): 'mini_challenge',
@@ -13,7 +13,9 @@ items_to_get = {
 }
 
 
-def get_season_episodes(bs: BeautifulSoup, season: int, series: str) -> List[pd.Series]:
+def get_season_episodes(bs: BeautifulSoup,
+                        season: int,
+                        series: str) -> List[pd.Series]:
     table = bs.find('table', class_='wikiepisodetable').find_all('td')
     episodes = []
 
@@ -39,7 +41,8 @@ def get_season_episodes(bs: BeautifulSoup, season: int, series: str) -> List[pd.
     return episodes
 
 
-def get_series_episodes(soup_list: List[BeautifulSoup], series_name: str) -> pd.DataFrame:
+def get_series_episodes(soup_list: List[BeautifulSoup],
+                        series_name: str) -> pd.DataFrame:
     episodes = []
     for season, soup in enumerate(soup_list):
         episodes += get_season_episodes(soup, season, series_name)
@@ -50,11 +53,10 @@ def get_all_episodes(soups: Dict[str, List[BeautifulSoup]]) -> pd.DataFrame:
     ret_lst = []
     for series_name, soup_list in soups.items():
         ret_lst += get_series_episodes(soup_list, series_name)
-    return pd.DataFrame(ret_lst)
+    return pd.DataFrame(ret_lst).fillna('None')
 
 
-def clean_episodes(df: pd.DataFrame) -> pd.DataFrame:
-    episodes = df.copy()
+def clean_episodes(episodes: pd.DataFrame) -> pd.DataFrame:
     episodes.season = episodes.season.astype(np.uint8)
     episodes.episode = episodes.episode.astype(np.uint8)
     episodes.air_date = pd.to_datetime(episodes.air_date)

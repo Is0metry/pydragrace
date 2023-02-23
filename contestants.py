@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 import requests
 from bs4 import BeautifulSoup
-from common import rm_newline
 from typing import Dict, List
+from common import rm_newline
 
 
 def get_season_contestants(soup: BeautifulSoup, season, series):
@@ -62,6 +62,7 @@ def clean_queens(df: pd.DataFrame) -> pd.DataFrame:
     split.iloc[291, 1] = 'Belgium'
     split = split.drop(columns=[2])
     queens = pd.concat([queens, split], axis=1).drop(columns=['city'])
+    queens['winner'] = queens.outcome == 1
     return queens.rename(columns={0: 'city',
                                   1: 'region',
                                   'contestant': 'queen_name'})
