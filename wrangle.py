@@ -15,14 +15,14 @@ from common import get_soups
 from episodes import get_all_episodes, clean_episodes
 from os.path import isfile
 WIKI_URLS = [
-    'https://en.wikipedia.org/wiki/RuPaul%27s_Drag_Race_(season_{:d})',
-    'https://en.wikipedia.org/wiki/RuPaul%27s_Drag_Race_UK_(series_{:d})',
-    'https://en.wikipedia.org/wiki/Canada%27s_Drag_Race_(season_{:d})',
-    'https://en.wikipedia.org/wiki/RuPaul%27s_Drag_Race_Down_Under_(season_{:d})',
-    'https://en.wikipedia.org/wiki/Drag_Race_Holland_(season_{:d})',
-    'https://en.wikipedia.org/wiki/Drag_Race_España_(season_{:d})',
-    'https://en.wikipedia.org/wiki/Drag_Race_Italia_(season_{:d})',
-    'https://en.wikipedia.org/wiki/Drag_Race_France_(season_{:d})'
+    'RuPaul%27s_Drag_Race_(season_{:d})',
+    'RuPaul%27s_Drag_Race_UK_(series_{:d})',
+    'Canada%27s_Drag_Race_(season_{:d})',
+    'RuPaul%27s_Drag_Race_Down_Under_(season_{:d})',
+    'Drag_Race_Holland_(season_{:d})',
+    'Drag_Race_España_(season_{:d})',
+    'Drag_Race_Italia_(season_{:d})',
+    'Drag_Race_France_(season_{:d})'
 ]
 SERIES_NAMES = ['Rupaul\'s Drag Race',
                 'Drag Race UK',
@@ -43,7 +43,8 @@ def rm_newline(s):
 def get_soup(f_url: str, no_seasons: int) -> List[BeautifulSoup]:
     series = []
     for season in range(1, no_seasons+1):
-        response = requests.get(f_url.format(season)).content
+        response = requests.get(
+            'https://en.wikipedia.org/wiki/' + f_url.format(season)).content
         series.append(BeautifulSoup(response, 'html.parser'))
     return series
 
@@ -53,9 +54,11 @@ def get_soups() -> Dict[str, List[BeautifulSoup]]:
     return {name: get_soup(url, seasons) for name, url, seasons in series_info}
 
 
-def get_show_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def get_show_data(repull=False) -> Tuple[pd.DataFrame,
+                                         pd.DataFrame,
+                                         pd.DataFrame]:
     # TODO Docstring
-    if all([isfile(p + '.pkl') for p in DATA_PATHS]):
+    if all([isfile(p + '.pkl') for p in DATA_PATHS]) and not repull:
         return (pd.read_pickle(path + '.pkl') for path in DATA_PATHS)
     soups = get_soups()
     queens = get_all_contestants(soups)
@@ -131,12 +134,12 @@ def split_queens(queens: pd.DataFrame,
                                                   pd.DataFrame]:
     # TODO Docstring
     queen_split = tvt_split(queens, stratify='winner')
-    ret_data = [pd.DataFrame(), pd.DataFrame, pd.DataFrame]
+    ret_data = [pd.DataFrame(), pd.DataFrame(), pd.DataFrame()]
     for i in (range(len(queen_split))):
         ret_data[i] = pd.merge(queen_split[i], contep, how='inner', left_on=[
-            'queen_name', 'season'],
+            'queen_name', 'series', 'season'],
             right_on=[
-            'queen_name', 'season'])
+            'queen_name', 'series', 'season'])
         ret_data[i] = pd.merge(ret_data[i], episodes, how='inner', left_on=[
-            'season', 'episode'], right_on=['season', 'episode'])
+            'series', 'season', 'episode'], right_on=['series', 'season', 'episode'])
     return ret_data[0], ret_data[1], ret_data[2]

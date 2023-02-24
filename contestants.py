@@ -17,9 +17,9 @@ def get_season_contestants(soup: BeautifulSoup, season, series):
     columns = [rm_newline(col.get_text()).lower(
     ) for col in queen_data[0].find_all('th')]
     for q in queen_data[1:]:
-        row = q.find_all(['th', 'td'])
-        queen = {col[0]: re.sub(r'(\n)|(\[[a-z]\])', '', col[1].get_text())
-                 for col in zip(columns, row)}
+        rows = q.find_all(['th', 'td'])
+        queen = {col: rm_newline(row.get_text())
+                 for col,row in zip(columns, rows)}
         queen['season'] = season + 1
         queen['series'] = series
         if 'current city' in queen.keys():
@@ -52,7 +52,7 @@ def clean_queens(df: pd.DataFrame) -> pd.DataFrame:
     queens.age = queens.age.astype(np.uint16)
     queens.season = queens.season.astype(np.uint8)
     queens.series = queens.series.astype('category')
-    queens.loc[queens.outcome == 'Winner', 'outcome'] = '1'
+    queens.loc[queens.outcome.str.contains('Winner'), 'outcome'] = '1'
     queens.loc[queens.outcome.str.contains('Runner'), 'outcome'] = '2'
     queens.loc[queens.outcome == 'Disqualified', 'outcome'] = '-1'
     queens.outcome = queens.outcome.apply(
@@ -65,4 +65,5 @@ def clean_queens(df: pd.DataFrame) -> pd.DataFrame:
     queens['winner'] = queens.outcome == 1
     return queens.rename(columns={0: 'city',
                                   1: 'region',
-                                  'contestant': 'queen_name'})
+                                  'contestant': 'queen_name',
+                                  'outcome':'placement'})

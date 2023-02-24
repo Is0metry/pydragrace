@@ -66,6 +66,8 @@ def clean_outcomes(queenep: pd.DataFrame) -> pd.DataFrame:
     queenep.loc[queenep.outcome == 'RTRN', 'outcome'] = 'GUEST'
     queenep.loc[queenep.outcome == 'Miss C', 'outcome'] = 'GUEST'
     queenep.loc[queenep.outcome == 'QUIT', 'outcome'] = 'ELIM'
+    queenep = queenep.drop(
+        queenep[~queenep.outcome.isin(['WIN', 'SAFE', 'BTM', 'ELIM'])].index)
     queenep.outcome = queenep.outcome.astype('category')
     return queenep
 

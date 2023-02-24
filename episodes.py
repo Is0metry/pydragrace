@@ -24,7 +24,7 @@ def get_season_episodes(bs: BeautifulSoup,
         episode['episode'] = i // 4 + 1
         episode['episode_name'] = table[i+1].get_text()
         episode['air_date'] = table[i+2].find('span', class_='bday').get_text()
-        episode['summary'] = table[i+3].get_text()
+        episode['summary'] = rm_newline(table[i+3].get_text())
         description_lists = table[i+3].find_all('ul')
         if len(description_lists) > 0:
             ep_info = description_lists[len(
