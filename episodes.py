@@ -13,6 +13,10 @@ items_to_get = {
 }
 
 
+def colon_cleanse(string_to_clean: str) -> str:
+    return re.sub(r'^\s*:\s+', '', string_to_clean)
+
+
 def get_season_episodes(bs: BeautifulSoup,
                         season: int,
                         series: str) -> List[pd.Series]:
@@ -34,7 +38,8 @@ def get_season_episodes(bs: BeautifulSoup,
                     info_type = info.b.extract()
                     for key in items_to_get.keys():
                         if re.search(key, info_type.get_text()) is not None:
-                            episode[items_to_get[key]] = info.get_text()
+                            episode[items_to_get[key]] = colon_cleanse(
+                                info.get_text())
                             break
                     info.insert(0, info_type)
         episodes.append(episode)

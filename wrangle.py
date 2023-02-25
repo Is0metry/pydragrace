@@ -89,7 +89,7 @@ def encode_mini_challenge_wins(queenep: pd.DataFrame,
                     left_on=['series', 'season', 'episode'], right_on=[
                         'series', 'season', 'episode'])
     for index, j in join.iterrows():
-        queenep.iloc[index, 6] = j.mini_challenge_winner.__contains__(
+        queenep.iloc[index, 5] = j.mini_challenge_winner.__contains__(
             j.queen_name)
 
     return queenep
@@ -103,6 +103,7 @@ def prepare_data(queens: pd.DataFrame,
     queens = clean_queens(queens)
     queenep = clean_queenep(queenep)
     episodes = clean_episodes(episodes)
+    queenep = encode_mini_challenge_wins(queenep, episodes)
     for path, data in zip(DATA_PATHS, (queens, queenep, episodes)):
         data.to_pickle(path + '.pkl')
     return queens, queenep, episodes
@@ -133,8 +134,9 @@ def split_queens(queens: pd.DataFrame,
                                                   pd.DataFrame,
                                                   pd.DataFrame]:
     # TODO Docstring
-    queen_split = tvt_split(queens, stratify='winner')
-    ret_data = [pd.DataFrame(), pd.DataFrame(), pd.DataFrame()]
+    queen_split = train_test_split(
+        queens, train_size=.8, random_state=420)
+    ret_data = [pd.DataFrame(), pd.DataFrame()]
     for i in (range(len(queen_split))):
         ret_data[i] = pd.merge(queen_split[i], contep, how='inner', left_on=[
             'queen_name', 'series', 'season'],
@@ -142,4 +144,4 @@ def split_queens(queens: pd.DataFrame,
             'queen_name', 'series', 'season'])
         ret_data[i] = pd.merge(ret_data[i], episodes, how='inner', left_on=[
             'series', 'season', 'episode'], right_on=['series', 'season', 'episode'])
-    return ret_data[0], ret_data[1], ret_data[2]
+    return ret_data[0], ret_data[1]

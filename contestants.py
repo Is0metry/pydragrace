@@ -19,7 +19,7 @@ def get_season_contestants(soup: BeautifulSoup, season, series):
     for q in queen_data[1:]:
         rows = q.find_all(['th', 'td'])
         queen = {col: rm_newline(row.get_text())
-                 for col,row in zip(columns, rows)}
+                 for col, row in zip(columns, rows)}
         queen['season'] = season + 1
         queen['series'] = series
         if 'current city' in queen.keys():
@@ -47,6 +47,12 @@ def get_all_contestants(soups: Dict[str, List[BeautifulSoup]]) -> pd.DataFrame:
     return pd.concat(all_queens).reset_index(drop=True)
 
 
+def relative_placement(row: pd.Series, max_placements: pd.DataFrame) -> pd.Series:
+    max_place = max_placements[(max_placements.series == row.series) & (
+        max_placements.season == row.season)].iloc[0, 2]
+    return ((max_place - row.outcome+1)/max_place)
+
+
 def clean_queens(df: pd.DataFrame) -> pd.DataFrame:
     queens = df.copy()
     queens.age = queens.age.astype(np.uint16)
@@ -57,13 +63,23 @@ def clean_queens(df: pd.DataFrame) -> pd.DataFrame:
     queens.loc[queens.outcome == 'Disqualified', 'outcome'] = '-1'
     queens.outcome = queens.outcome.apply(
         lambda s: re.sub(r'^(\d{1,2}).*', r'\1', s)).astype(np.int8)
+    max_placements = queens.groupby(
+        ['series', 'season']).outcome.max().reset_index()
+    queens['relative_placement'] = queens.apply(
+        relative_placement, max_placements=max_placements, axis=1)
+    queens['winner'] = queens.outcome == 1
     split = queens.city.str.split(', ', expand=True)
     split.iloc[112, 1] = 'Massechussetts'
     split.iloc[291, 1] = 'Belgium'
     split = split.drop(columns=[2])
     queens = pd.concat([queens, split], axis=1).drop(columns=['city'])
-    queens['winner'] = queens.outcome == 1
-    return queens.rename(columns={0: 'city',
-                                  1: 'region',
-                                  'contestant': 'queen_name',
-                                  'outcome':'placement'})
+    queens = queens.rename(columns={0: 'city',
+                                    1: 'region',
+                                    'contestant': 'queen_name',
+                                    'outcome': 'placement'})
+    return queens[['queen_name',
+                   'age', 'series',
+                   'season', 'placement',
+                   'city', 'region',
+                   'relative_placement',
+                   'winner']]
