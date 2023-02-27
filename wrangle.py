@@ -1,19 +1,21 @@
 import re
+from os.path import isfile
+from typing import Dict, List, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import requests
 import seaborn as sns
-import matplotlib.pyplot as plt
-from typing import Dict, Tuple
-from sklearn.model_selection import train_test_split
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet
-from typing import List
-from contestants import get_all_contestants, clean_queens
-from queeneps import get_all_contep, clean_queenep
-from common import get_soups
-from episodes import get_all_episodes, clean_episodes
-from os.path import isfile
+from sklearn.model_selection import train_test_split
+
+from contestants import clean_queens, get_all_contestants
+from episodes import clean_episodes, get_all_episodes
+from lipsyncs import get_all_lipsyncs
+from queeneps import clean_queenep, get_all_contep
+
 WIKI_URLS = [
     'RuPaul%27s_Drag_Race_(season_{:d})',
     'RuPaul%27s_Drag_Race_UK_(series_{:d})',
@@ -89,7 +91,7 @@ def encode_mini_challenge_wins(queenep: pd.DataFrame,
                     left_on=['series', 'season', 'episode'], right_on=[
                         'series', 'season', 'episode'])
     for index, j in join.iterrows():
-        queenep.iloc[index, 5] = j.mini_challenge_winner.__contains__(
+        queenep.iloc[index, 6] = j.mini_challenge_winner.__contains__(
             j.queen_name)
 
     return queenep
@@ -103,6 +105,7 @@ def prepare_data(queens: pd.DataFrame,
     queens = clean_queens(queens)
     queenep = clean_queenep(queenep)
     episodes = clean_episodes(episodes)
+    queenep = encode_episodes(queenep, episodes)
     queenep = encode_mini_challenge_wins(queenep, episodes)
     for path, data in zip(DATA_PATHS, (queens, queenep, episodes)):
         data.to_pickle(path + '.pkl')
@@ -144,4 +147,5 @@ def split_queens(queens: pd.DataFrame,
             'queen_name', 'series', 'season'])
         ret_data[i] = pd.merge(ret_data[i], episodes, how='inner', left_on=[
             'series', 'season', 'episode'], right_on=['series', 'season', 'episode'])
+        ret_data[i] = ret_data[i].set_index(['queen_name','episode_id'])
     return ret_data[0], ret_data[1]

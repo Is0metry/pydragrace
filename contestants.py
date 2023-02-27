@@ -60,7 +60,7 @@ def clean_queens(df: pd.DataFrame) -> pd.DataFrame:
     queens.series = queens.series.astype('category')
     queens.loc[queens.outcome.str.contains('Winner'), 'outcome'] = '1'
     queens.loc[queens.outcome.str.contains('Runner'), 'outcome'] = '2'
-    queens.loc[queens.outcome == 'Disqualified', 'outcome'] = '-1'
+    queens = queens.drop(queens[queens.outcome == 'Disqualified'].index)
     queens.outcome = queens.outcome.apply(
         lambda s: re.sub(r'^(\d{1,2}).*', r'\1', s)).astype(np.int8)
     max_placements = queens.groupby(
